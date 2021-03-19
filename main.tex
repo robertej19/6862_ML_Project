@@ -27,6 +27,7 @@
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}
 \usepackage[pdftex]{graphicx}
+\usepackage{lineno}
 
 \title{Machine Learning Enhancements to Particle Physics Simulations to Reduce Computational Complexity}
 
@@ -98,14 +99,20 @@
 % Relevant related work? (brief summary)
 % What is your project plan? You may include key steps and rough internal deadlines for each step.
 % What are the risks? What might turn out to be more difficult than you anticipated? And how might you mitigate these risks?
+\linenumbers
 
-\section{Proposal}
+%\section{Proposal}
 % What do you want to do? What question are you answering?
-\quad In an electron-proton scattering experiment in the CLAS12 detector at Thomas Jefferson National Accelerator Facility (JLab) [\citet{BURKERT2020163419}], an incoming electron beam near the speed of light is incident on a stationary proton target. The electron and proton interact and can produce final state particles according to the governing physical laws that include quantum field theory. The particle species of incoming particles and products are called initial and final states, respectively. For each DVEP, the final states are uniquely determined. For example, one DVEP, called Deeply Virtual $\pi^0$ Production (DV$\pi^0$P), has one electron, one proton, and two photons as its final state [\citet{PhysRevD.55.7114}].
+\quad Large scale particle physics experiments use humankind's largest machines to study nature at the smallest scales. One such experiment, called CLAS12 in Virginia at the Thomas Jefferson National Accelerator Facility (JLab) [\citet{BURKERT2020163419}], collides ultrarelativistic electrons moving only 1 m/s slower than the speed of light into an ultracold bunch of hydrogen to glean information about the substructure of the proton. The energetic electrons interact with protons according to the governing physical laws of our universe as described by quantum field theory, which results in the production of high energy photons, which along with the electron and proton, form a four particle set known as a final state, in particular this is the final state of a prominent process named Deeply Virtual $\pi^0$ Production (DV$\pi^0$P) which is physically related to various mechanical properties of the proton [\citet{PhysRevD.55.7114}]. 
+
+%This is a continuation of the above paragraph, getting to answering "what is it you want to do" - I think what we need to answer is - we want to repalce GEANT4 with a generative model" 
+\quad The purpose of the CLAS12 detector is to detect the individual particles of this and other final states by recording the electrical signals produced when they pass through specific materials, which are then stored digitally and analyzed with reconstruction algorithms that have been developed to recreate the particles' tracks through space, and identify what happened and where. In reality, there are many difficulties in reliably detecting and reconstructing particle paths, so computational methods have been developed to better understand detector and analysis algorithm responses. Canonically in particle physics, real data is compared with the output of detailed simulations of the experiment, wherein Monte-Carlo methods are used to walk simulated particles through a detector system in many small time steps [\citet{PhysRevLett.115.212003, 10.1093/ptep/ptaa104}]. However, this simulation method is very computationally expensive, especially for our particular physics experiment and process. As such, our goal is to use a generative machine learning model to mimic the output of the Monte Carlo simulation process and reconstruction system, thereby greatly reducing computational requirements for studying these physics processes. 
+
+
 
 % What data will you use? Give a specific description of the data
 % and confirm that you already have the data in hand at this point.
-\quad An event is defined as a set of particles detected in the interaction time scale. One widely accepted way of analyzing events is to compare experimental results with Monte-Carlo simulated data set [\citet{PhysRevLett.115.212003, 10.1093/ptep/ptaa104}]. The standard simulation consists of two steps. First, we generate a data set of particle momenta based on prior knowledge before particles pass the detectors. Second, the second step is to pass these events to the GEANT4 package [\citet{AGOSTINELLI2003250}], which simulates the interaction between the final states and detectors. This serial simulation can be performed using computing facilities connected to Open Science Grid (OSG), including MIT farms. The simulated data of a few million events are already achieved, more amounts of simulated data can be easily taken from OSG. For example, in one day, we can roughly simulate 100M events of data.
+\quad  The standard simulation consists of two steps. First, we generate a data set of particle momenta based on prior knowledge before particles pass the detectors. Second, the second step is to pass these events to the GEANT4 package [\citet{AGOSTINELLI2003250}], which simulates the interaction between the final states and detectors. This serial simulation can be performed using computing facilities connected to Open Science Grid (OSG), including MIT farms. The simulated data of a few million events are already achieved, more amounts of simulated data can be easily taken from OSG. For example, in one day, we can roughly simulate 100M events of data.
 
 % What is your motivation? Formulate your problem as a machine learning problem.
 \quad Before we discuss the machine learning techniques, we start from a toy model, a baseball game with one pitcher and one catcher. In one "inning", the pitcher throws a ball four times in a row, knowing the ball's velocity and direction in spherical coordinates (velocity, polar angle $\theta$, azimuthal angle $\phi$) in the beginning. In $i$-th inning, the pitcher has the data $z^{i}$ as 4$\times$3 matrices. The catcher also records the four ball's velocities and directions in $x^{i}$'s in 4$\times$3 matrices. The first two innings are visualized in Fig.~\ref{data}-a. The catcher may catch all of the balls correctly like $x^0$, and sometimes miss some balls like $x^1$. One wants to collect the pair of $z^i$ and $x^i$, but notices that hiring a catcher is way more expensive than hiring a pitcher.
