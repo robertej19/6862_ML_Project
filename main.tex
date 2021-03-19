@@ -115,7 +115,7 @@
 
 
 % What is your motivation? Formulate your problem as a machine learning problem.
-\quad Before we discuss the machine learning techniques, we start from a toy model, a baseball game with one pitcher and one catcher. In one "inning", the pitcher throws a ball four times in a row, knowing the ball's velocity and direction in spherical coordinates (velocity, polar angle $\theta$, azimuthal angle $\phi$) in the beginning. In $i$-th inning, the pitcher has the data $z^{i}$ as 4$\times$3 matrices. The catcher also records the four ball's velocities and directions in $x^{i}$'s in 4$\times$3 matrices. The first two innings are visualized in Fig.~\ref{data}-a. The catcher may catch all of the balls correctly like $x^0$, and sometimes miss some balls like $x^1$. One wants to collect the pair of $z^i$ and $x^i$, but notices that hiring a catcher is way more expensive than hiring a pitcher.
+\quad Before we discuss the machine learning techniques, we start from a toy model, a baseball game with one pitcher and one catcher. In one "inning", the pitcher throws a ball four times in a row, knowing the ball's velocity and direction in spherical coordinates (velocity, polar angle $\theta$, azimuthal angle $\phi$) in the beginning. In $i$-th inning, the pitcher has the data $z^{i}$ as 4$\times$3 matrices. The catcher also records the four ball's velocities and directions in $x^{i}$'s in 4$\times$3 matrices. The first two innings are visualized in Fig.~\ref{data}-a. The catcher may catch all of the balls correctly like $x^0$, and sometimes miss some balls like $x^1$. One wants to collect the pair of $z^i$ and $x^i$, but notices that hiring a catcher is far more expensive than hiring a pitcher.
 
 \begin{figure}[!hb]
  \centering
@@ -124,7 +124,7 @@
   \label{data}
 \end{figure}
 
-\quad In our simulated data, the pitcher's record $z^i$ corresponds to the results of step 1 of the serial simulation, and the catcher's record $x^i$ corresponds to the results of step 2 simulation. The results of each simulation can be encoded as particle's kinematic information. One particle has 4 dimensional information, where 3 dimensions come from (momentum, polar angle $\theta$, azimutha angle $\phi$) and another one from particle species. The example of the first two events are in Fig.~\ref{data}-b. In summary, $x^i$'s are in \{4$\times$4\}$\times d$, and $z^i$'s are also in \{4$\times$4\}$\times d$ dimension, when $d$ is total number of events. From our experiences, for one day simulation, only 10 minutes are spent to simulate $z^i$, while the rest of time spent is attributed to simulate $x^i$.
+\quad In our simulated data, the pitcher's record $z^i$ corresponds to the results of step 1 of the serial simulation, and the catcher's record $x^i$ corresponds to the results of step 2 simulation. The results of each simulation can be encoded as particle's kinematic information. One particle has 4 dimensional information, where 3 dimensions come from (momentum, polar angle $\theta$, azimuthal angle $\phi$) and another one from particle species. The example of the first two events are in Fig.~\ref{data}-b. In summary, $x^i$'s are in \{4$\times$4\}$\times d$, and $z^i$'s are also in \{4$\times$4\}$\times d$ dimension, when $d$ is total number of events. From our experiences, for one day simulation, only 10 minutes are spent to simulate $z^i$, while the rest of time spent is attributed to simulate $x^i$.
 
 % What methods will you try and compare?
 \quad Given the motivation, we aim to replace step 2 simulation with some generative models that takes input as $z^i$, and output as $x^i$. We propose the normalizing flow (NF) [\citet{9089305, papamakarios2019normalizing}] as our generative model. \textcolor{red}{need details.}
@@ -157,7 +157,7 @@ related work: \citet{PhysRevD.101.076002}\textcolor{red}{need details.}
 
 
 
-%garbages previously submitted
+%garbages previously submitted <3
 %Since the experimental discovery of the proton by Ernest Rutherford over 100 years ago, there have been various attempts to reveal its internal structure. Yet, its three dimensional profile is still elusive. Measurements on deeply virtual exclusive processes (DVEP) from electron-proton scattering are one proposed way to project the proton structure [\citet{PhysRevD.55.7114}]. In the CLAS12 detector at Thomas Jefferson National Accelerator Facility (JLab), experimental data has been taken of these and other processes [\citet{BURKERT2020163419}].
 
 %Ideally, an event should consist of initial and final states. This is not always true because particles in final states are stochastically detected, depending on their kinematics and detector efficiencies.
