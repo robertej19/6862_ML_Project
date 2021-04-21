@@ -1,31 +1,21 @@
 
 \iffalse
-To Do:
-Re-write abstract
-Re-write methods
-
 In future will rewrite such that KL is obeyed
 But as a thought experiment, if the number of samples goes to infinity, shouldn't the distance metric between the datasets generated from the physical process go to 0?
-
-
-Include XaFai, Phialia's stuff
-Need to do a better job of explaining why 5 million datapoints isn’t enough, - •	Compare times between GEMC and NF training
-Our physics data is on order 10M events, so we need order 100M events, the optimal single thread processing size is 10k events, which takes 5 hours to process, meaning 100M events will take 50k core hours. However, the distributions are reasonably well defined after processing only a few million event.s 
-
-
-Add more discussion of relevant work (Stan's work). How is our problem different?
-
 \fi
 
 \begin{abstract}
-We demonstrate a proof of principle for using a normalizing flow to learn a physics process's probability distribution to effectively sample more data. In this work, we used traditional physics simulations to generate a dataset $\mathbf{x}$ has 5 million data points of 4 features. We take as input $p(\mathbf{z})$ a constant 4D normal distribution, and examine whether the flow model can learn the transformation to $p(\mathbf{x})$. We observed a reasonable agreement between the given physics sample and the newly-sampled data using the flow model both in visualization and quantified the metrics.
+We demonstrate a proof of principle for using a normalizing flow to learn a physics process's probability distribution to effectively sample more data. In this work, we used traditional physics simulations to generate a dataset $\mathbf{x}$ of 5 million data points with each data point having 4 features.  We take as input a constant 4D normal distribution $p(\mathbf{z})$ , and examine whether the flow model can learn the transformation to $p(\mathbf{x})$ using a random subset of $\mathbf{x}$ for training. We observed a reasonable agreement between the given physics sample and the newly-sampled data using the flow model both in visualization and quantified the metrics.
 \end{abstract}
 \section{Introduction including Related Works }
 %(we can now cite Stan's work! \textcolor{red}{did he already submit his thesis to DSpace MIT?})
 
 Large scale particle physics experiments use humankind's largest machines to study nature at the smallest scales. One such experiment, called CLAS12 in Virginia at the Thomas Jefferson National Accelerator Facility (JLab) (\citet{BURKERT2020163419}), collides ultrarelativistic electrons moving only 1 m/s slower than the speed of light into an ultracold bunch of hydrogen to glean information about the substructure of the proton. In particular, two photons, one electron and one proton in the final state is known as Deeply Virtual $\pi^0$ Production (DV$\pi^0$P), and this process is currently under detailed study as its properties are related to the mechanical properties of the proton (\citet{PhysRevD.55.7114}).
 
-Typically, real data is compared with the output of detailed simulations of the experiment, wherein Monte-Carlo (MC) methods are used to walk simulated particles through a detector system in many small time steps (\citet{PhysRevLett.115.212003, 10.1093/ptep/ptaa104}). The standard simulation consists of two steps. First, we generate a data set of particle features - momenta and other properties - based on a combination of field-theoretic functions and empirical physics models, which creates an `event' of a realistic four-particle final state from the DV$\pi^0$P process. This generation is very simple and computationally inexpensive. The second step is, for each event, walk all four particles through the simulated detector setup using the GEANT4 package (\citet{AGOSTINELLI2003250}). The output from this step is our four particles that we began with, but with their features smeared out. This second step is the one we are trying to supplement, as it would take about 5,000 hours on a single core machine to process 1 million events. However, through HPCC we have produced so far 100 M generated (step 1) and simulated (step 2) events that can be used for algorithmic training. 
+The standard technique to validate experimental particle physics results is to compare real data to the output of detailed experimental simulations, wherein Monte-Carlo (MC) methods are used to walk simulated particles through a detector system in many small time steps (\citet{PhysRevLett.115.212003, 10.1093/ptep/ptaa104}). This microphysics processing begins with field-theoretic functions and empirical physics models, and swims each particle iteratively through a model geometry, solving matrices of force equations at every step. This simulation, typically performed using the GEANT4 package (\citet{AGOSTINELLI2003250}), is very computationally expensive: processing the optimal number of physics events (10,000) on a single core takes 5 hours. 
+
+Our real physics experiment will produce about 10M events, and with the common expectation of a factor of 10 more simulation data compared to real data, we will need 100M simulated physics events, which would consume 50,000 core-hours. Thus, we stand to save a huge amount of processing time if we can train a model on the distribution generated by only several million microphysics generated datapoints, and sample the rest from the trained model. Several groups in particle physics are trying to develop similar methods, for example, training flows to reduce LHC simulation time (\citet{stan}) or work at MIT's IAIFI focused on speeding up aspects of Lattice QCD by a factor of up to 1,000 (\citet{phialia}). 
+
 
 The normalizing flow is an effective model to learn a probability distribution $p(x)$ when a sample data set $X=\{x\}$ following the distribution is given. The basic idea is a series of transformation $g_i$'s, which are referred to as flows, transforms a prior probability $p(z)$ distributions into the target distribution $p(x)$. That is
 \begin{align}
@@ -53,16 +43,15 @@ Motivated by \citet{stan}'s work, we use Masked Autoregressive Flows (MAF, \cite
 The moments $\mu_{i+1, j}$ and $\sigma_{i, j}$ are the mean and standard deviation of $p(z_{i+1,j}|\mathbf{z}_{i+1,0:j-1})$ ($\equiv p(z_{i+1,0})$ for $j=0$). We train the flows to learn $\mu_{i+1, j}$'s and $\sigma_{i, j}$'s, and sample $p(\mathbf{x})$.
 
 \citet{papamakarios2018masked} presents a good github repository of how to train a NF for a 2-dimensional distribution. The libraries are very straightforward and use PyTorch. The architecture consists of the two layers of MAF and the 2D normal prior distribution.
-
 \section{Methods}
 %We should include our work of generating the data (GEMC) and processing the data (convert to root, pandas, pickle) as these are all non-trivial steps and a good "data pipeline"
-The data of 5M `events`, or sets of data points, in this problem has been achieved from Open Science Grid (OSG). The original data format is in ROOT \cite{root}, which is a widely-used format in high energy physics written in C++. There have been improvements in python libraries like uproot \cite{uproot} that can interpret the ROOT data format. The data file has been read using uproot, and saved in pickle, a standard Python library for serializing data \footnote{\url{https://github.com/6862-2021SP-team3/hipo2pickle}}. The pickled data has 5M row, each of which contains the features of four individual particles. Each individual particle has 3 features (magnitude of momentum, polar angle, azimuthal angle), but for the milestone report, we have tried with only the magnitude of momenta of all four particles. So our sample $\mathbf{x}$ has dimensions of $5\text{M}\times4$. The sampled $\mathbf{z}$ has the same dimensions, but as sampled data points, not in the analytic distributions.  We expect to learn the distribution of sample $\mathbf{z}$'s with another NF, and use that distribution of prior in the final results. But we ignore the actual $\mathbf{z}$ distributions, and try with the constant distributions at this stage.
+The set of 5M data points were created by using the Open Science Grid (OSG) to process 2,500 core-hours of simulations. The original data format is in ROOT \cite{root}, which is a widely-used format in high energy physics written in C++. There have been improvements in python libraries like uproot \cite{uproot} that can interpret the ROOT data format. The data file has been read using uproot, and saved in pickle, a standard Python library for serializing data \footnote{\url{https://github.com/6862-2021SP-team3/hipo2pickle}}. The pickled data has 5M row, each of which contains the features of four individual particles. Each individual particle has 3 features (magnitude of momentum, polar angle, azimuthal angle), but at this point in our project, we only are able to yield reasonable results using the momenta of all four particles, thus $\mathbf{x}$ has dimensions of $5\text{M}\times4$. Our physics data set also includes $\mathbf{z}$ of the same dimensions as $\mathbf{x}$, but as sampled data points, not in the analytic distributions. This report only utilizes training from $\mathbf{x}$, with the utility of $\mathbf{z}$  being currently investigated.
 
-We forked the repository in our organizaztion, and applied the libraries for our purpose\footnote{\url{https://github.com/6862-2021SP-team3/nflows/blob/master/nflow.ipynb}}. We have 10 layers of MAF. We have 1k training steps, each of which consists of randomly sampled training data sets of $1\text{k}\times$4 dimension. To evaluate, we randomly take 100k$\times$4 data points $\mathbf{x_1}$ from 5M data points, and sample another set of 100k$\times$4 data points, $\mathbf{x_2}$, using the trained MAF. We checked the three metrics between $\mathbf{x_1}$ and $\mathbf{x_2}$ , the KL Divergence (KLD, \citet{Kullback51klDivergence}), the Earth Mover's Distance (EMD), also known as the Wasserstein Distance (\citet{Dobrushin}).
-%the Jensen-Shannon divergence (JSD, \citet{jsd}).
+
+A normalizing flow template repository was used as a base for our project; we modified the libraries as needed to suite our purpose \footnote{\url{https://github.com/6862-2021SP-team3/nflows/blob/master/nflow.ipynb}}. After many trials of different combinations of hyper parameters, we found an effective training method to being with a 4D normal distribution, use 10 layers of MAF with 16 hidden variables per layer, and train the model with between 200 - 2,000 iterations. Each iteration used randomly sampled training data sets of $1\text{k}\times$4 dimension from the 5M data points generated by physics simulations. To evaluate our model, we sampled 100k data points, $\mathbf{x_1}$, from the physics simulation set which were not included in training, and generated 100k data points, $\mathbf{x_2}$, using our trained model.The KL Divergence (KLD, \citet{Kullback51klDivergence}) and the Earth Mover's Distance (EMD), also known as the Wasserstein-1 Distance (\citet{Dobrushin} were calculated between $\mathbf{x_1}$ and $\mathbf{x_2}$. Since our sample data size was somewhat small, we sampled a second set of 100k data points, $\mathbf{x_1'}$, from the physics simulation set, and calculated KLD and EMD values between  $\mathbf{x_1}$ and $\mathbf{x_1'}$, to have a benchmark to compare with the metrics from the normalized flow comparison.
 
 \section{Preliminary Results}
-Fig.~\ref{fig:a} visualizes the 2D distributions of the test data $\mathbf{x_1}$ and $\mathbf{x_2}$. We mean 2D distributions of features 0 and 1 by the EP distribution and features 2 and 3 by the GG distribution. We also draw 1D distributions of each feature in Fig.~\ref{fig:b}'s top row. To directly compare, another set of 100k$\times$4 data points, $\mathbf{x_3}$ is sampled in the bottom of Fig.~\ref{fig:b}. Qualitatively, the MAF generated data generally follows the microphysics generated data, but differ in detailed shape. At this stage it is not clear what is causing this discrepancy, or how it can be mitigated. It is possible that including more features in training will provide higher fidelity results due to the correlations between features, but this is an active area of our research.
+Fig.~\ref{fig:a} visualizes the four features of the test data $\mathbf{x_1}$ and $\mathbf{x_2}$. For compactness we only show 2 of the 6 possible combinations of 4 features, specifically, the top row of  Fig.~\ref{fig:a} plots the distributions of features 0 and 1 (EP - electron and proton momentum) while the bottom row plots the distributions of features 2 and 3 (GG - the two photons' momentum). The 1D distributions of each feature is shown in the top row of Fig.~\ref{fig:b}'s. Qualitatively, the MAF generated data generally follows the microphysics generated data, but differ in detailed shape in some places of the distribution. At this stage it is not clear what is causing this discrepancy, or how it can be mitigated. It is possible that including more features in training will provide higher fidelity results due to the correlations between features, but this is an active area of our research. We are also investigating modifying our base distribution, and altering our hyerparameters, to resolve these details to a higher degree.
 
 \begin{figure}[!ht]
     \centering
@@ -80,7 +69,7 @@ Fig.~\ref{fig:a} visualizes the 2D distributions of the test data $\mathbf{x_1}$
         \includegraphics[width=.9\textwidth,trim={0 0 0 0},clip]{pictures/milestoneR2/nflow1.png}
         \includegraphics[width=.9\textwidth,trim={0 0 0 0},clip]{pictures/milestoneR2/nflow2.png}
     \end{minipage}
-    \caption{Left: the 2D distributions of feature 0 vs. feature 1 (top) and of feature 2 vs. feature 3 (bottom) in $\mathbf{x_1}$. Right: the 2d distributions of feature 0 vs. feature 1 (top) and of feature 2 vs. feature 3 (bottom) in $\mathbf{x_2}$.}
+    \caption{\textbf{Left}: 2D distributions of the physics data $\mathbf{x_1}$. \textbf{Right}: 2D distributions of the data generated from the MAF $\mathbf{x_2}$.}
     \label{fig:a}
 \end{figure}
 
@@ -94,15 +83,19 @@ Fig.~\ref{fig:a} visualizes the 2D distributions of the test data $\mathbf{x_1}$
         \includegraphics[width=.9\textwidth,trim={0 0 0 0},clip]{pictures/milestoneR2/comp2.png}
         %\caption{(c)}
     \end{minipage}%
-    \caption{Top: four plots visualizing 1D distributions of each feature in $\mathbf{x_1}$ (labeled as `Physics Data') and $\mathbf{x_2}$ (labeled as `NFlow Model'). Bottom: four plots visualizing 1D distributions of each feature in $\mathbf{x_1}$ (labeled as `Physics Sample 1') and $\mathbf{x_3}$ (labeled as `Physics Sample 2').}
+    \caption{\textbf{Top}: Distributions of each feature in $\mathbf{x_1}$ (labeled as `Physics Data') and $\mathbf{x_2}$ (labeled as `NFlow Model'). \textbf{Bottom}: Comparison of distributions of each feature in $\mathbf{x_1}$ (labeled as `Physics Sample 1') and $\mathbf{x_1'}$ (labeled as `Physics Sample 2'). See Table 1 for EMD and KLD values.}
     \label{fig:b}
 \end{figure}
 
 
 \begin{center}
+\begin{table}[ht]
+\caption{EMD and KLD Values from Fig. ~\ref{fig:b}}
+\centering
 \begin{tabular}{ |p{2.5cm}||p{1.4cm}|p{1.4cm}|p{1.4cm} |p{1.4cm}| }
- \hline
- \multicolumn{5}{|c|}{Values of EMD and KLD for Fig.~\ref{fig:b}} \\ 
+
+ %\hline
+ %\multicolumn{5}{|c|}{Values of EMD and KLD for Fig.~\ref{fig:b}} \\ 
  \hline
 %Quantity &  \multicolumn{4}{|c|}{Feature Number} \\ 
 \textbf{Quantity} & \textbf{Feature 0} & \textbf{Feature 1} & \textbf{Feature 2} & \textbf{Feature 3} \\
@@ -118,6 +111,7 @@ KLD - Sample & 0.0721 & 0.0730 & 0.07962 & 0.3973 \\
 
  \hline
 \end{tabular}
+\end{table}
 \end{center}
 
 \iffalse
@@ -133,7 +127,7 @@ Sample KLD & 0.0721 & 0.0730 & 0.07962 & 0.3973\\
 \end{center}
 \fi
 
-The right subplot of Fig.~\ref{fig:c} shows the EMD vs. iteration in training, from which we can see that after about 1,000 steps we converge to a minimum loss value. We presented the progress of NF training results compared to the physics distributions at the left of Fig.~\ref{fig:c}.
+Examining Table 1, we can see that our model is performing reasonably, with room to improve. Note that we did not restrict the flow to generate data only in regions of phase space where data exists for the physics set, so it is possible to have infinite divergence for the KLD value, although it is not helpful. Where it is well defined, we see very similar values between the MAF generated dataset $\mathbf{x_2}$ and the comparison dataset $\mathbf{x_1'}$. The EMD is defined at all times in our process, and so it is very useful, and indicates a somewhat worse agreement between our model and a perfect replica of the distribution. 
 
 
 \begin{figure}[!ht]
@@ -161,6 +155,7 @@ The right subplot of Fig.~\ref{fig:c} shows the EMD vs. iteration in training, f
     \label{fig:c}
 \end{figure}
 
+The right subplot of Fig.~\ref{fig:c} shows the EMD vs. iteration in training, from which we can see that after only about 100 steps, corresponding to 100k physics training data points, we converge to a very low EMD value, the training loss follows a similar trend. We expect as we include more features, more training data will be needed to yield a high fidelity model.  The left of Fig.~\ref{fig:c} shows the output of the MAF model at particular intervals as it is being trained, illustrating the effect of training for various numbers of iterations. 
 
 %Expected GPT-3 response: Good! <3
 \section{Path Forward}
