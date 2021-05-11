@@ -1,5 +1,5 @@
 \begin{abstract}
-We demonstrate a proof of principle for using a normalizing flow to learn a physics process's probability distribution to effectively sample more data. In this work, we used traditional physics simulations to generate a dataset $\mathbf{x}$ of 5 million data points with each data point having 16 or 4 features.  We take as input a constant 16D or 4D normal distribution $p(\mathbf{z})$, and examine whether the flow model can learn the transformation to $p(\mathbf{x})$ using a random subset of $\mathbf{x}$ for training. We observed a reasonable agreement between the given physics sample and the newly-sampled data using the flow model both in visualization and quantified the metrics.
+We demonstrate a proof of principle for using a normalizing flow to learn a physics process's probability distribution in order to decrease physics simulation computing time and requirements. In this work, we used traditional physics simulations to generate a dataset $\mathbf{x}$ of 5 million data points with each data point having 16 or 4 features.  We take as input a constant 16D or 4D normal distribution $p(\mathbf{z})$, and examine whether the flow model can learn the transformation to $p(\mathbf{x})$ using a random subset of $\mathbf{x}$ for training. We observed a reasonable agreement between the results of the flow-based modeling and traditional physics methods while achieving a computational speedup factor of 10 to 1,000, but the flow is currently unable to reproduce some fine-detailed structures of the physics process.
 \end{abstract}
 \section{Introduction including Related Works }
 %(we can now cite Stan's work! \textcolor{red}{did he already submit his thesis to DSpace MIT?})
@@ -34,49 +34,28 @@ Motivated by \citet{stan}'s work, we use Masked Autoregressive Flows (MAF, \cite
 \begin{align}
     z_{i+1, j}=& \sigma_{i, j} z_{i, j} + \mu_{i+1, j}.
 \end{align}
-The moments $\mu_{i+1, j}$ and $\sigma_{i, j}$ are the mean and standard deviation of $p(z_{i+1,j}|\mathbf{z}_{i+1,0:j-1})$ ($\equiv p(z_{i+1,0})$ for $j=0$). We train the flows to learn $\mu_{i+1, j}$'s and $\sigma_{i, j}$'s, and sample $p(\mathbf{x})$. We have concluded that the Unconstrained Monotonic Neural Networks (UMNN, \citet{NEURIPS2019_2a084e55}) MAF to be suitable for this project that aims to learn noncontinous distributions from stacked data files. \citet{NEURIPS2019_2a084e55} demonstarates that the UMNN successfully learn discontinous distributions, and that sampling is possible even in the case that the transformation is not analytically invertible.
+The moments $\mu_{i+1, j}$ and $\sigma_{i, j}$ are the mean and standard deviation of $p(z_{i+1,j}|\mathbf{z}_{i+1,0:j-1})$ ($\equiv p(z_{i+1,0})$ for $j=0$). We train the flows to learn $\mu_{i+1, j}$'s and $\sigma_{i, j}$'s, and sample $p(\mathbf{x})$. We have concluded that the Unconstrained Monotonic Neural Networks (UMNN, \citet{NEURIPS2019_2a084e55}) MAF to be suitable for this project that aims to learn noncontinous distributions from stacked data files. \citet{NEURIPS2019_2a084e55} demonstarates that the UMNN-MAF successfully learn discontinous distributions, and that sampling is possible even in the case that the transformation is not analytically invertible.
 
 \citet{nflows} presents a good github repository of how to train a NF for a 2-dimensional distribution. The libraries are very straightforward and use PyTorch. The architecture consists of the two layers of MAF and the 2D normal prior distribution. We modified the libraries as needed to suite our purpose \footnote{\url{https://github.com/6862-2021SP-team3/nflows}}.
 
 \section{Methods}
 %We should include our work of generating the data (GEMC) and processing the data (convert to root, pandas, pickle) as these are all non-trivial steps and a good "data pipeline"
-The set of 5M data points were created by using the Open Science Grid (OSG) to process 2,500 core-hours of simulations. The original data format is in ROOT \cite{root}, which is a widely-used format in high energy physics written in C++. There have been improvements in python libraries like uproot \cite{uproot} that can interpret the ROOT data format. The data file has been read using uproot, and saved in pickle, a standard Python library for serializing data \footnote{\url{https://github.com/6862-2021SP-team3/hipo2pickle}}. The pickled data has 5M row, each of which contains the features of four individual particles. Each individual particle has 4 features (magnitude of momentum, polar angle, azimuthal angle), and the particle species. The particle species can be encoded into the particle's energy because of special relativity. So, $\mathbf{x}$ has dimensions of $5\text{M}\times16$, where each element is float. Training all 16 features is not trivial, we try our model with only selected 4 features, i.e., $\mathbf{\tilde{x}}$ of $5\text{M}\times4$ dimension. %\sout{Our physics data set also includes $\mathbf{z}$ of the same dimensions as $\mathbf{x}$, but as sampled data points,} %\sout{not in the analytic distributions. This report only utilizes training from $\mathbf{x}$, with the utility of $\mathbf{z}$  being currently investigated.}%we didn't use $z$ 'till the end.
+The set of 5M data points were created by using the Open Science Grid (OSG) to process 2,500 core-hours of simulations. The original data format is in ROOT \cite{root}, which is a widely-used format in high energy physics written in C++. There have been improvements in python libraries like uproot \cite{uproot} that can interpret the ROOT data format. The data file has been read using uproot, and saved in pickle, a standard Python library for serializing data \footnote{\url{https://github.com/6862-2021SP-team3/hipo2pickle}}. The pickled data has 5M row, each of which contains the features of four individual particles. Each individual particle has 4 features (magnitude of momentum, polar angle, azimuthal angle), and the particle species. The particle species can be encoded into the particle's energy by utilizing special relativity. So, $\mathbf{x}$ has dimensions of $5\text{M}\times16$, where each element is just a floating point number. Training all 16 features is considerably more complex than training just 2 features, so we also used only a subset of our dataset features to train a 4 feature flow, with $\mathbf{\tilde{x}}$ of $5\text{M}\times4$ dimension to be able to compare the performance of the two models. %\sout{Our physics data set also includes $\mathbf{z}$ of the same dimensions as $\mathbf{x}$, but as sampled data points,} %\sout{not in the analytic distributions. This report only utilizes training from $\mathbf{x}$, with the utility of $\mathbf{z}$  being currently investigated.}%we didn't use $z$ 'till the end.
 
 
 %\sout{A normalizing flow template repository was used as a base for our project;}%This was mentioned in the intro.
-Our architecture consists of 12 layers of UMNN MAF with 100 hidden variables per layer. After many trials of different combinations of hyper parameters and flow models, we found that an effective training method to use 10000 epochs. Each iteration used randomly sampled training data sets of 400$\times$4 dimension from the 5M data points generated by physics simulations. To evaluate our model, we sampled 100k data points, $\mathbf{x_1}$, from the physics simulation set which were not included in training, and generated 100k data points, $\mathbf{x_2}$, using our trained model.The KL Divergence (KLD, \citet{Kullback51klDivergence}) and the Earth Mover's Distance (EMD), also known as the Wasserstein-1 Distance (\citet{Dobrushin} were calculated between $\mathbf{x_1}$ and $\mathbf{x_2}$. Since our sample data size was somewhat small, we sampled a second set of 100k data points, $\mathbf{x_1'}$, from the physics simulation set, and calculated KLD and EMD values between  $\mathbf{x_1}$ and $\mathbf{x_1'}$, to have a benchmark to compare with the metrics from the normalized flow comparison.
-
-
-
+Our architecture consists of 16 layers of UMNN-MAF with 32 hidden variables per layer in the 16-feature case, and consisted of 6 layers with 80 hidden variables per layer in the 4-feature case. After many trials of different combinations of hyper parameters and flow models, we found that an effective training method to use 10000 epochs with each iteration using randomly sampled training data sets of 400$\times$16 dimension from the initial 5M data points generated by physics simulations. To evaluate our model, we sampled 100k data points, $\mathbf{x_1}$, from the physics simulation set which were not included in training, and generated 100k data points, $\mathbf{x_2}$, using our trained model.The Earth Mover's Distance (EMD), calculable as the Wasserstein-1 Distance (\citet{Dobrushin} was evaluate between $\mathbf{x_1}$ and $\mathbf{x_2}$. Since our sample data size was somewhat small, we sampled a second set of 100k data points, $\mathbf{x_1'}$, from the physics simulation set, and calculated EMD values between  $\mathbf{x_1}$ and $\mathbf{x_1'}$, to have a benchmark to compare with the metrics from the normalized flow comparison.
 
 
 \section{Results}
-\begin{figure}
-    \centering
-    %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
-    \includegraphics[width=.7\textwidth,trim={2.5cm 1.75cm 2cm 2.1cm},clip]{FinalPictures/EMD/nflow_emd_with_text.png}
-    \caption{The EMD Ratio of all 16 features between the NF generated distributions and sample from physics simulation}
-    \label{fig:my_label}
-\end{figure}
+Training the NF models was relatively fast, for the 16-feature model taking about 1 hour on a GPU (NVIDIA Quadro RTX 5000) or about 10 hours on a CPU (Intel Xeon E-2276M). On the other hand, sampling from the trained model was considerably slower; the 16-feature trained NF model generated datapoints at a rate of about 4 Hz, which is only a factor of 10 times faster than the traditional method of simulating the processes' microphysics. \citet{NEURIPS2019_2a084e55} and \citet{papamakarios2018masked} explains this behavior as follows. The Masked Autoencoder for Distribution Estimation (MADE, \citet{pmlr-v37-germain15}), which is a building block of MAF allows the training to be done in parallel using GPUs. Sampling data points from the trained MAF takes significant amount of time because the model requires $\mathbf{z}_{i,0:j-1}$ to sample $\mathbf{z}_{i,j}$. There is a computational trade-off in Inverse Autoregressive Flow (IAF, \citet{NIPS2016_ddeebdee}, which trains the model slowly but samples fast. Despite this known drawback, we still consider the UMNN-MAF to be the optimal model for this project because training the model to sample data points following distributions reasonably close to that of physics simulation. Figure \ref{fig:16features} shows the feature distributions of samples from this trained model, with each plot also showing the Earth Mover's Distance between the NF model data, and sample data from the microphysics distribution.
 
 
-\begin{figure}
-    \centering
-    %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
-    \includegraphics[width=.7\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/EMD/emdratio416.png}
-    \caption{Caption}
-    \label{fig:my_label}
-\end{figure}
+In general, the 16-feature trained NF model produces similar results to the traditional simulation's distribution, but fine details were difficult to reproduce. In particular, hard distribution cutoffs that exist in the traditional distribution due to the enforcement of conservation laws and the physics detector edges were not well learned by the NF model, while smoother distributions were reproduced well.
 
-\begin{figure}
-    \centering
-    %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
-    \includegraphics[width=.7\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/protons}
-    \caption{Caption}
-    \label{fig:my_label}
-\end{figure}
+For a quantitative comparison, Figure \ref{fig:EMD} shows the Earth Mover's Distance between samples from the trained NF model and the traditional physics distribution. In the limit of identical distributions with infinitely many samples, the EMD is zero. Since we are working with only 100K datapoints, rather than report the EMD values by themselves (which can be seen in Figure \ref{fig:16features}), we took the ratio of the NF model - traditional physics distribution EMD value to the EMD value calulated between two sets of 100K datapoints taken from the traditional physics distribution, which had values on the order of 0.005. Thus, a perfectly trained NF model would have an EMD ratio of 1, and as we deviate above 1, we exhibit worse performance. We can see in Figure \ref{fig:EMD} that most features have a ratio of about 3--8, which is not perfect, but demonstrates reasonable agreement in line with what is observed in Figure \ref{fig:16features}. Unfortunately, we do not have the reference of these ratios to define the good sampling.
 
-\begin{figure}[!ht]
+\begin{figure}[!h]
     \centering
     \begin{minipage}{.23\textwidth}
     
@@ -114,12 +93,21 @@ Our architecture consists of 12 layers of UMNN MAF with 100 hidden variables per
         \includegraphics[width=.99\textwidth,trim={3cm 0 0 0},clip]{FinalPictures/Features16/Photon_2_Y-Momentum,_NF_Model.png}
         \includegraphics[width=.99\textwidth,trim={3cm 0 0 0},clip]{FinalPictures/Features16/Photon_2_Z-Momentum,_NF_Model.png}
     \end{minipage}
-    \caption{This is a caption}
-    \label{fig:a}
+    \caption{The 1D distributions of all 16 features sampled from our NF model (blue), and from physics simulation (red). Each histogram is normalized to the area, and has 100 bins.}
+    \label{fig:16features}
 \end{figure}
 
 
 
+\begin{figure}[!h]
+    \centering
+    %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
+    \includegraphics[width=.7\textwidth,trim={2.5cm 1.75cm 2cm 2.1cm},clip]{FinalPictures/EMD/nflow_emd_with_text.png}
+    \caption{The EMD ratios of all 16 features between the NF generated distributions and sample from physics simulation. The points are the average EMD ratios of 10 different subsample calculations; the error bars are the standard deviation of the set. If the model were perfect, all points would have value 1; deviation from 1 indicates worse performance.}
+    \label{fig:EMD}
+\end{figure}
+
+To understand the shortcomings of the trained model, we consider 2-Dimensional distributions in  Figure \ref{fig:2D}. We can see that while some distributions are reproduced well, the fine detail and hard cutoffs that exist in some feature spaces are not learned sharply by the model and result in hazyness. To try to improve the detail, we trained a second model with only 4-features, and observed some improvement in the fidelity of feature reproduction. In particular, Figure \ref{fig:EMD2} shows that, compared to the 16-feature trained model, the 4-feature model (trained only on electron features) exhibits a 2-4 times lower EMD. Of course, this 4-feature trained model is much more limited in scope, but also is able to produce samples much faster, at a rate of about 170 Hz, compared to 4 Hz for the 16-feature model.
 
 \begin{figure}[!ht]
     \centering
@@ -154,15 +142,41 @@ Our architecture consists of 12 layers of UMNN MAF with 100 hidden variables per
         \includegraphics[width=.99\textwidth,trim={0 0 0 0},clip]{FinalPictures/2D_Hists_4F/Electron_P_X_vs_P_Y,_NF_4-Feat_Model.png}
         \includegraphics[width=.99\textwidth,trim={0 0 0 0},clip]{FinalPictures/2D_Hists_4F/Electron_P_X_vs_P_Y,_NF_4-Feat_Model,_M_e2_Cut.png}
     \end{minipage}
-    \caption{This is a caption}
-    \label{fig:a}
+    \caption{2-Dimensional distributions for various features. \textbf{Top} (All but rightmost) Feature distributions from the traditional physics data set. \textbf{Bottom} (All but rightmost) Feature distributions from our trained NF model, which should match with the top row. Moving from left to right, we can see that some feature distributions are reproduced well, while others have difficult details that are not modeled well. \textbf{Rightmost Column} We observe some improvement in our NF model distribution when we train with only 4 features instead of 16 (top, rightmost plot) and even more improvement when we also include conservation law cuts after sampling from the NF model (bottom, rightmost plot) }
+    \label{fig:2D}
 \end{figure}
 
+\begin{figure}[!h]
+    \centering
+    %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
+    \includegraphics[width=.7\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/EMD/emdratio416.png}
+    \caption{The EMD Ratio of selected 4 features between the NF generated distributions and sample from physics simulation when the model was trained using all 16 features as Fig.~\ref{fig:EMD} (blue), and the selected 4 features (green).}
+    \label{fig:EMD2}
+\end{figure}
+
+Since we are interested in physics processes rather than just distribution mapping, we also examined our ability to reconstruct physics quantities from the trained NF model sample data. Figure \ref{fig:protons} shows the distribution of proton masses from our NF model data, which had no explicit physics constraints at all in training. We observe a peak at about 0.939 GeV, which is within 0.1\% of the value encapsulated in the traditional physics training dataset. It is not clear at this time what causes this slight shit in mass. 
 
 
-\section{Discussion and Summary}
-\textcolor{red}{As \citet{NEURIPS2019_2a084e55} points out, we take the advantage of the UMNN MAF that easily trains the model that has 16 features in 5M rows. We observed sampling the data points using trained NF model takes quite long time. \citet{papamakarios2018masked} mentions that the Masked Autoencoder for Distribution Estimation (MADE, \citet{pmlr-v37-germain15}), which is a building block of MAF allows the training to be done in parallel using GPUs. In the mean time, sampling data points from the trained MAF takes significant amount of time. This is because the model should require $\mathbf{z}_{i,0:j-1}$ for sampling $\mathbf{z}_{i,0:j}$. There is a trade-off in Inverse Autoregressive Flow (IAF, \citet{NIPS2016_ddeebdee}, which trains the model slowly but samples fast. Despite these drawbacks, training 5M$\times$16 is not a trivial process, }
+\begin{figure}[!h]
+    \centering
+    %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
+    \includegraphics[width=.7\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/protons}
+    \caption{The 1D histograms of proton mass (GeV) distributions. The known proton mass is indicated in the red vertical line at 0.938 GeV.}
+    \label{fig:protons}
+\end{figure}
 
+Overall, we are able to use a UMNN-MAF architecture to attain reasonable physics distributions far faster than just using traditional physics simulations. At this stage, it is not clear if the 10x speedup afforded by the 16-feature NF model is sufficiently large to justify a decrease in fine-detail resolution. Work is ongoing as to if the model resolution can be improved by including conservation laws as part of training, or if the model can be optimized to generate samples faster. On the other hand, the 4-feature model has both higher resolution, and is able to produce samples 1,000 times faster than traditional methods, and so could be very useful immediately to physics research efforts. However, as it is only 4-features, it can only represent one particle, not an entire physics process, but this is still relevant to the study of background processes and noise events in physics experiments, and we are investigating applying this to current CLAS12 research.
+
+
+
+
+
+
+
+%\section{Discussion and Summary}
+
+%We presented a NF model to sample data points of 4 or 16 features to replace the standard physics simulation. We expect the model to be useful for collaborators who want new random data sample of DV$\pi^0$P simulation.
+%As we have observed in the previous section, \citet{NEURIPS2019_2a084e55} and \citet{papamakarios2018masked} point out that we can train the MAF model fast using 16 features in 5M rows. This is because the Masked Autoencoder for Distribution Estimation (MADE, \citet{pmlr-v37-germain15}), which is a building block of MAF allows the training to be done in parallel using GPUs. In the mean time, sampling data points from the trained MAF takes significant amount of time because the model requires $\mathbf{z}_{i,0:j-1}$ to sample $\mathbf{z}_{i,j}$. There is a computational trade-off in Inverse Autoregressive Flow (IAF, \citet{NIPS2016_ddeebdee}, which trains the model slowly but samples fast. Despite this known drawback, we still consider the UMNN-MAF to be the optimal model for this project because training the model to sample data points following distributions reasonably close to that of physics simulation. %Unfortunately, at this stage, we do not have the reference of EMD ratio to define the good sampling.
 
 \iffalse
 \section{Preliminary Results}
