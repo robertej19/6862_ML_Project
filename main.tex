@@ -41,10 +41,8 @@ email address or ORCID}
 City, Country \\
 email address or ORCID}
 \and
-\textcolor{red}{NOTE: Still in the process of transferring content to the IEEE format. Should be complete by EOD 6/18/21}\\
 \textcolor{red}{to do:
 get picture formatting correct
-make citations work
 import new results and update context}
 }
 
@@ -55,7 +53,7 @@ We demonstrate a proof of principle for using a normalizing flow to learn a phys
 \end{abstract}
 
 \begin{IEEEkeywords}
-component, formatting, style, styling, insert
+\textcolor{red}{Insert Keywords}
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -89,7 +87,7 @@ Motivated by \cite{stan}'s work, we use Masked Autoregressive Flows (MAF, \cite{
 \begin{align}
     z_{i+1, j}=& \sigma_{i, j} z_{i, j} + \mu_{i+1, j}.
 \end{align}
-The moments $\mu_{i+1, j}$ and $\sigma_{i, j}$ are the mean and standard deviation of $p(z_{i+1,j}|\mathbf{z}_{i+1,0:j-1})$ ($\equiv p(z_{i+1,0})$ for $j=0$). We train the flows to learn $\mu_{i+1, j}$'s and $\sigma_{i, j}$'s, and sample $p(\mathbf{x})$. We have concluded that the Unconstrained Monotonic Neural Networks (UMNN, \cite{NEURIPS2019}) MAF to be suitable for this project that aims to learn noncontinuous distributions from stacked data files. \cite{NEURIPS2019} demonstrates that the UMNN-MAF successfully learn discontinuous distributions, and that sampling is possible even in the case that the transformation is not analytically invertible.
+The moments $\mu_{i+1, j}$ and $\sigma_{i, j}$ are the mean and standard deviation of $p(z_{i+1,j}|\mathbf{z}_{i+1,0:j-1})$ ($\equiv p(z_{i+1,0})$ for $j=0$). We train the flows to learn $\mu_{i+1, j}$'s and $\sigma_{i, j}$'s, and sample $p(\mathbf{x})$. We have concluded that the Unconstrained Monotonic Neural Networks (UMNN, \cite{NEURIPS20192a084e55}) MAF to be suitable for this project that aims to learn noncontinuous distributions from stacked data files. \cite{NEURIPS20192a084e55} demonstrates that the UMNN-MAF successfully learn discontinuous distributions, and that sampling is possible even in the case that the transformation is not analytically invertible.
 
 \cite{nflows} presents a good Github repository of how to train a NF for a 2-dimensional distribution. The libraries are very straightforward and use PyTorch. The architecture consists of the two layers of MAF and the 2D normal prior distribution. We modified the libraries as needed to suite our purpose.
 
@@ -112,7 +110,7 @@ In general, the 16-feature trained NF model produces similar results to the trad
 
 For a quantitative comparison, Figure \ref{fig:EMD} shows the Earth Mover's Distance between samples from the trained NF model and the traditional physics distribution. In the limit of identical distributions with infinitely many samples, the EMD is zero. Since we are working with only 100K datapoints, rather than report the EMD values by themselves (which can be seen in Figure \ref{fig:16features}), we took the ratio of the NF model - traditional physics distribution EMD value to the EMD value calculated between two sets of 100K datapoints taken from the traditional physics distribution, which had values on the order of 0.005. Thus, a perfectly trained NF model would have an EMD ratio of 1, and as we deviate above 1, we exhibit worse performance. We can see in Figure \ref{fig:EMD} that most features have a ratio of about 3--8, which is not perfect, but demonstrates reasonable agreement in line with what is observed in Figure \ref{fig:16features}. Unfortunately, we do not have the reference of these ratios to define the good sampling.
 
-\begin{figure}[!h]
+\begin{figure*}[!ht]
     \centering
     \begin{minipage}{.23\textwidth}
     
@@ -152,14 +150,14 @@ For a quantitative comparison, Figure \ref{fig:EMD} shows the Earth Mover's Dist
     \end{minipage}
     \caption{The 1D distributions of all 16 features sampled from our NF model (blue), and from physics simulation (red). Each histogram is normalized to the area, and has 100 bins.}
     \label{fig:16features}
-\end{figure}
+\end{figure*}
 
 
 
 \begin{figure}[!h]
     \centering
     %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
-    \includegraphics[width=.7\textwidth,trim={2.5cm 1.75cm 2cm 2.1cm},clip]{FinalPictures/EMD/nflow_emd_with_text.png}
+    \includegraphics[width=.47\textwidth,trim={2.5cm 1.75cm 2cm 2.1cm},clip]{FinalPictures/EMD/nflow_emd_with_text.png}
     \caption{The EMD ratios of all 16 features between the NF generated distributions and sample from physics simulation. The points are the average EMD ratios of 10 different subsample calculations; the error bars are the standard deviation of the set. If the model were perfect, all points would have value 1; deviation from 1 indicates worse performance.}
     \label{fig:EMD}
 \end{figure}
@@ -168,7 +166,7 @@ To understand the shortcomings of the trained model, we consider 2-Dimensional d
 
 \begin{figure}[!ht]
     \centering
-    \begin{minipage}{.33\textwidth}
+    \begin{minipage}{.133\textwidth}
     
         \centering
        % Electron
@@ -177,7 +175,7 @@ To understand the shortcomings of the trained model, we consider 2-Dimensional d
 
         %\caption{(c)}
     \end{minipage}%
-    \begin{minipage}{0.33\textwidth}
+    \begin{minipage}{0.133\textwidth}
         \centering
        %Feature Distributions from Traditional Microphysics Simulations
         \includegraphics[width=.99\textwidth,trim={0 0 0 0},clip]{FinalPictures/Hists2D/Electon_P_X_vs_Proton_P_X,_Physics_Data.png}
@@ -187,7 +185,7 @@ To understand the shortcomings of the trained model, we consider 2-Dimensional d
         
 
     \end{minipage}
-     \begin{minipage}{0.33\textwidth}
+     \begin{minipage}{0.133\textwidth}
             \centering
            % Photon 1
             \includegraphics[width=.99\textwidth,trim={0 0 0 0},clip]{FinalPictures/Hists2D/Electon_P_X_vs_Electron_P_Y,_Physics_Data.png}
@@ -204,10 +202,10 @@ To understand the shortcomings of the trained model, we consider 2-Dimensional d
 To try to improve fine-detail reproduction by our model, we trained a second model with only 4-features, which corresponded to a full description of a simulated electron. We observed some improvement in the fidelity of feature reproduction, in particular, Figure \ref{fig:EMD2} shows that, compared to the 16-feature trained model, the 4-feature model (trained only on electron features) exhibits a 2-4 times lower EMD. Of course, this 4-feature trained model is much more limited in scope, but also is able to produce samples much faster, at a rate of about 170 Hz, compared to 4 Hz for the 16-feature model. Given that it describes fully a simulated electron, this would be useful for generally speeding up simulations, but the correlations between different particles that define specific processes like DV$\pi$P is lost. 
 
 
-\begin{figure}[!h]
+\begin{figure}[!ht]
     \centering
     %\includegraphics[scale=0.3]{FinalPictures/EMD/EmdRatio.png}
-    \includegraphics[width=.7\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/EMD/emdratio416.png}
+    \includegraphics[width=.47\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/EMD/emdratio416.png}
     \caption{The EMD Ratio of selected 4 features between the NF generated distributions and sample from physics simulation when the model was trained using all 16 features as Fig.~\ref{fig:EMD} (blue), and the selected 4 features (green). The 4-Feature trained model shows consistently lower EMD ratio values than the 16-trained model, indicating a better ability to reproduce electron features.}
     \label{fig:EMD2}
 \end{figure}
@@ -216,19 +214,19 @@ Comparing to Figure \ref{fig:2D}, we can see from Figure \ref{2D4F} that the 4-f
 
 \begin{figure}[!ht]
     \centering
-     \begin{minipage}{0.323\textwidth}
+     \begin{minipage}{0.1323\textwidth}
         \centering
         Traditional Simulation
         \includegraphics[width=.99\textwidth,trim={0 0 0 0},clip]{FinalPictures/Hists2D/Electon_P_X_vs_Electron_P_Y,_Physics_Data.png}
         
     \end{minipage}
-         \begin{minipage}{0.323\textwidth}
+         \begin{minipage}{0.1323\textwidth}
         \centering
         16-Feature Model
         \includegraphics[width=.99\textwidth,trim={0 0 0 0},clip]{FinalPictures/Hists2D/Electon_P_X_vs_Electron_P_Y,_NF_Model.png}
 
     \end{minipage}
-         \begin{minipage}{0.323\textwidth}
+         \begin{minipage}{0.1323\textwidth}
         \centering
         4-Feature Model
        
@@ -257,13 +255,13 @@ Ultimately, we are interested in physics processes rather than just distribution
 
 \begin{figure}[!ht]
     \centering
-     \begin{minipage}{0.49\textwidth}
+     \begin{minipage}{0.2349\textwidth}
         \centering
         %Photon 2
         \includegraphics[width=.97\textwidth,trim={ 0 0 0 0},clip]{FinalPictures/protons}
 
     \end{minipage}
-    \begin{minipage}{0.45\textwidth}
+    \begin{minipage}{0.21245\textwidth}
         \centering
         %Photon 2
         
